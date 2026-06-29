@@ -5,7 +5,7 @@
   .confirm-wrap { max-width: 640px; margin: 3rem auto; padding: 0 1.5rem; text-align: center; }
   .confirm-icon { font-size: 3.5rem; margin-bottom: 1rem; }
   .confirm-wrap h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--ink); margin-bottom: 0.4rem; }
-  .confirm-wrap p { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  .confirm-wrap > p { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
   .ticket {
     background: var(--white);
     border: 2px dashed var(--cream-border);
@@ -31,13 +31,26 @@
   .ticket-label { font-size: 0.82rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
   .ticket-value { font-size: 0.92rem; color: var(--ink); font-weight: 500; }
   .ticket-total .ticket-value { color: var(--crimson); font-size: 1.1rem; font-weight: 700; }
+  .payment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #F0FFF4;
+    border: 1px solid #A7F3D0;
+    color: #065F46;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 100px;
+  }
 </style>
 {% endblock %}
 {% block content %}
 <div class="confirm-wrap">
   <div class="confirm-icon">✅</div>
   <h1>Booking Confirmed!</h1>
-  <p>Your ticket has been issued. Please save your ticket ID for reference.</p>
+  <p>Your ticket has been issued. Save your Ticket ID for reference.</p>
+
   <div class="ticket">
     <div class="ticket-id">🎟 {{ booking.ticket_id }}</div>
     <div class="ticket-row"><span class="ticket-label">Passenger</span><span class="ticket-value">{{ booking.passenger_name }}</span></div>
@@ -47,8 +60,22 @@
     <div class="ticket-row"><span class="ticket-label">Seats</span><span class="ticket-value">{{ booking.num_seats }}</span></div>
     <div class="ticket-row"><span class="ticket-label">Email</span><span class="ticket-value">{{ booking.passenger_email }}</span></div>
     <div class="ticket-row ticket-total"><span class="ticket-label">Total Amount</span><span class="ticket-value">₦{{ "{:,}".format(booking.total_amount|int) }}</span></div>
+    <div class="ticket-row">
+      <span class="ticket-label">Payment</span>
+      <span class="ticket-value">
+        <span class="payment-badge">
+          {% if booking.payment_method == 'card' %}💳 Debit Card
+          {% elif booking.payment_method == 'transfer' %}🏦 Bank Transfer
+          {% elif booking.payment_method == 'ussd' %}📱 USSD
+          {% elif booking.payment_method == 'cash' %}💵 Cash at Terminal
+          {% else %}{{ booking.payment_method }}
+          {% endif %}
+        </span>
+      </span>
+    </div>
     <div class="ticket-row"><span class="ticket-label">Status</span><span class="ticket-value" style="color:#065F46; font-weight:700">{{ booking.status }}</span></div>
   </div>
+
   <a href="/" class="btn">Book Another Ticket</a>
   &nbsp;&nbsp;
   <a href="/check-booking" class="btn btn-outline">Check Booking</a>

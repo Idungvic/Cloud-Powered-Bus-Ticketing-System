@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Payment — Eddie's Bus{% endblock %}
+
+{% block extra_style %}
+<style>
+  .payment-wrap { max-width: 680px; margin: 3rem auto; padding: 0 1.5rem; }
+  .payment-wrap h1 { font-family: 'Playfair Display', serif; font-size: 1.9rem; color: var(--ink); margin-bottom: 0.3rem; }
+  .payment-wrap > p { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+  /* Order summary */
+  .order-summary {
+    background: var(--crimson-deep);
+    color: var(--cream);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .order-route { font-family: 'Playfair Display', serif; font-size: 1.1rem; }
+  .order-meta { font-size: 0.83rem; color: #D4B8A0; margin-top: 0.2rem; }
+  .order-amount { font-size: 1.4rem; font-weight: 700; color: var(--gold); }
+  .order-amount span { font-size: 0.75rem; font-weight: 400; color: #D4B8A0; }
+
+  /* Payment method tabs */
+  .method-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+  }
+  .method-tab {
+    border: 2px solid var(--cream-border);
+    border-radius: 10px;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--white);
+  }
+  .method-tab:hover { border-color: var(--crimson); }
+  .method-tab.active {
+    border-color: var(--crimson);
+    background: #FFF5F5;
+  }
+  .method-tab input[type="radio"] { display: none; }
+  .method-icon { font-size: 1.6rem; display: block; margin-bottom: 0.4rem; }
+  .method-label { font-size: 0.8rem; font-weight: 600; color: var(--ink); }
+
+  /* Payment forms */
+  .payment-form-section { display: none; }
+  .payment-form-section.active { display: block; }
+
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .cash-notice {
+    background: #FFF9E6;
+    border: 1px solid #F0D060;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    color: #7A5C00;
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+  .cash-notice strong { display: block; font-size: 1rem; margin-bottom: 0.4rem; color: #5A4000; }
+
+  .transfer-notice {
+    background: #F0F7FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    color: #1E40AF;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+  .transfer-notice strong { display: block; font-size: 1rem; margin-bottom: 0.4rem; }
+
+  .ussd-notice {
+    background: #F0FFF4;
+    border: 1px solid #A7F3D0;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    color: #065F46;
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+  .ussd-notice strong { display: block; font-size: 1rem; margin-bottom: 0.4rem; }
+  .ussd-code {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--crimson);
+    letter-spacing: 0.05em;
+    display: block;
+    margin: 0.5rem 0;
+  }
+
+  @media (max-width: 600px) {
+    .method-tabs { grid-template-columns: repeat(2, 1fr); }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-wrap">
+  <h1>Complete Payment</h1>
+  <p>Choose your preferred payment method to confirm your booking</p>
+
+  <!-- Order Summary -->
+  <div class="order-summary">
+    <div>
+      <div class="order-route">{{ booking.origin }} → {{ booking.destination }}</div>
+      <div class="order-meta">{{ booking.travel_date }} &nbsp;|&nbsp; {{ booking.num_seats }} seat(s) &nbsp;|&nbsp; {{ booking.passenger_name }}</div>
+    </div>
+    <div class="order-amount">₦{{ "{:,}".format(booking.total_amount) }} <span>total</span></div>
+  </div>
+
+  <div class="card">
+    <form method="POST" id="payment-form">
+
+      <!-- Payment Method Tabs -->
+      <p style="font-size:0.85rem; font-weight:600; color:var(--ink); margin-bottom:1rem;">Select Payment Method</p>
+      <div class="method-tabs">
+        <label class="method-tab" id="tab-card" onclick="showMethod('card')">
+          <input type="radio" name="payment_method" value="card"/>
+          <span class="method-icon">💳</span>
+          <span class="method-label">Debit Card</span>
+        </label>
+        <label class="method-tab" id="tab-transfer" onclick="showMethod('transfer')">
+          <input type="radio" name="payment_method" value="transfer"/>
+          <span class="method-icon">🏦</span>
+          <span class="method-label">Bank Transfer</span>
+        </label>
+        <label class="method-tab" id="tab-ussd" onclick="showMethod('ussd')">
+          <input type="radio" name="payment_method" value="ussd"/>
+          <span class="method-icon">📱</span>
+          <span class="method-label">USSD</span>
+        </label>
+        <label class="method-tab" id="tab-cash" onclick="showMethod('cash')">
+          <input type="radio" name="payment_method" value="cash"/>
+          <span class="method-icon">💵</span>
+          <span class="method-label">Cash</span>
+        </label>
+      </div>
+
+      <!-- CARD FORM -->
+      <div class="payment-form-section" id="form-card">
+        <div class="form-group">
+          <label>Cardholder Name</label>
+          <input type="text" name="card_name" placeholder="Name on card"/>
+        </div>
+        <div class="form-group">
+          <label>Card Number</label>
+          <input type="text" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" id="card-number-input"/>
+        </div>
+        <div class="card-grid">
+          <div class="form-group">
+            <label>Expiry Date</label>
+            <input type="text" name="card_expiry" placeholder="MM/YY" maxlength="5"/>
+          </div>
+          <div class="form-group">
+            <label>CVV</label>
+            <input type="text" name="card_cvv" placeholder="123" maxlength="3"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- BANK TRANSFER FORM -->
+      <div class="payment-form-section" id="form-transfer">
+        <div class="transfer-notice">
+          <strong>🏦 Bank Transfer Details</strong>
+          Bank: First Bank Nigeria<br/>
+          Account Name: Eddie's Bus Company<br/>
+          Account Number: <strong>3012345678</strong><br/>
+          Amount: <strong>₦{{ "{:,}".format(booking.total_amount) }}</strong><br/>
+          Use your name as the transfer narration.
+        </div>
+        <div class="form-group">
+          <label>Transfer Reference Number</label>
+          <input type="text" name="transfer_ref" placeholder="Enter your transfer reference e.g. FBN2026123456"/>
+        </div>
+      </div>
+
+      <!-- USSD FORM -->
+      <div class="payment-form-section" id="form-ussd">
+        <div class="ussd-notice">
+          <strong>📱 Pay with USSD</strong>
+          Dial the code below on your phone to pay ₦{{ "{:,}".format(booking.total_amount) }}:
+          <span class="ussd-code">*894*000*{{ booking.total_amount }}#</span>
+          After payment, click Confirm Booking below. Your ticket will be issued immediately.
+        </div>
+      </div>
+
+      <!-- CASH FORM -->
+      <div class="payment-form-section" id="form-cash">
+        <div class="cash-notice">
+          <strong>💵 Pay with Cash at the Terminal</strong>
+          Your seat is reserved for <strong>30 minutes</strong>. Please visit any Eddie's Bus Company terminal and pay
+          <strong>₦{{ "{:,}".format(booking.total_amount) }}</strong> in cash to the ticketing officer.<br/><br/>
+          Show this booking reference at the counter:<br/>
+          <strong style="font-size:1.1rem; color:var(--crimson);">{{ booking.passenger_name }} — {{ booking.origin }} → {{ booking.destination }} — {{ booking.travel_date }}</strong>
+        </div>
+      </div>
+
+      <button type="submit" class="btn" style="width:100%; margin-top:1.75rem; padding:1rem; font-size:1rem;" id="pay-btn" disabled>
+        Select a Payment Method
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  function showMethod(method) {
+    // Hide all sections
+    document.querySelectorAll('.payment-form-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+
+    // Show selected
+    document.getElementById('form-' + method).classList.add('active');
+    document.getElementById('tab-' + method).classList.add('active');
+
+    // Check the radio
+    document.querySelector('input[value="' + method + '"]').checked = true;
+
+    // Update button
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = false;
+    const labels = {
+      card: 'Pay ₦{{ "{:,}".format(booking.total_amount) }} with Card →',
+      transfer: 'Confirm Transfer →',
+      ussd: 'Confirm USSD Payment →',
+      cash: 'Reserve Seat & Pay at Terminal →'
+    };
+    btn.textContent = labels[method];
+  }
+
+  // Format card number with spaces
+  const cardInput = document.getElementById('card-number-input');
+  if (cardInput) {
+    cardInput.addEventListener('input', function() {
+      let val = this.value.replace(/\s/g, '').replace(/\D/g, '');
+      this.value = val.match(/.{1,4}/g)?.join(' ') || val;
+    });
+  }
+</script>
+{% endblock %}
