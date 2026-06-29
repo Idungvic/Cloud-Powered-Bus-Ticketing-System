@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Search Results — Eddie's Bus{% endblock %}
+{% block extra_style %}
+<style>
+  .results-wrap { max-width: 860px; margin: 3rem auto; padding: 0 1.5rem; }
+  .results-header { margin-bottom: 2rem; }
+  .results-header h1 { font-family: 'Playfair Display', serif; font-size: 1.9rem; color: var(--ink); }
+  .results-header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+  .result-card {
+    background: var(--white);
+    border: 1px solid var(--cream-border);
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(44,24,16,0.05);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .result-card:hover { box-shadow: 0 6px 24px rgba(139,26,26,0.1); border-color: rgba(139,26,26,0.25); }
+  .result-route { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--ink); font-weight: 700; }
+  .result-route span { color: var(--crimson); }
+  .result-meta { display: flex; gap: 2rem; margin-top: 0.5rem; }
+  .result-meta-item { font-size: 0.85rem; color: var(--muted); }
+  .result-meta-item strong { color: var(--text); display: block; }
+  .result-right { text-align: right; }
+  .result-price { font-size: 1.4rem; font-weight: 700; color: var(--crimson); }
+  .result-price-label { font-size: 0.78rem; color: var(--muted); }
+  .no-results { text-align: center; padding: 4rem 2rem; }
+  .no-results h2 { font-family: 'Playfair Display', serif; color: var(--ink); margin-bottom: 0.5rem; }
+  .no-results p { color: var(--muted); margin-bottom: 1.5rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="results-wrap">
+  <div class="results-header">
+    <h1>{{ origin }} → {{ destination }}</h1>
+    <p>Travel date: {{ travel_date }} &nbsp;|&nbsp; {{ results|length }} route(s) found</p>
+  </div>
+  {% if results %}
+    {% for route in results %}
+    <div class="result-card">
+      <div>
+        <div class="result-route">{{ route.from }} <span>→</span> {{ route.to }}</div>
+        <div class="result-meta">
+          <div class="result-meta-item"><strong>{{ route.departure }}</strong>Departure</div>
+          <div class="result-meta-item"><strong>{{ route.duration }}</strong>Duration</div>
+          <div class="result-meta-item"><strong>{{ route.seats }} seats</strong>Available</div>
+        </div>
+      </div>
+      <div class="result-right">
+        <div class="result-price">₦{{ "{:,}".format(route.price) }}</div>
+        <div class="result-price-label">per seat</div>
+        <a href="/book/{{ route.id }}?travel_date={{ travel_date }}" class="btn" style="margin-top:0.75rem; display:inline-block">Book Seat →</a>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-results">
+      <h2>No routes found</h2>
+      <p>We could not find a direct route from <strong>{{ origin }}</strong> to <strong>{{ destination }}</strong>.</p>
+      <a href="/" class="btn">Search Again</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
